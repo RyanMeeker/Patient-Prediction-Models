@@ -44,7 +44,7 @@ def RF(data):
 
     rmse = []
     # Initialize the random forest regressor
-    rf = RandomForestRegressor(n_estimators=200, random_state=0)
+    rf = RandomForestRegressor(n_estimators=200, min_samples_split=4, random_state=0)
 
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
         print(("-" * 12),"Training fold ",idx, (12 * "-"))
@@ -60,7 +60,7 @@ def RF(data):
         y_pred = rf.predict(X_test)
 
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
-        print("Fold {idx} finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
+        print("Fold", idx, " finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
 
     mrmse = np.mean(rmse)
 
@@ -75,7 +75,7 @@ def lightGBM(data):
     X, y = split(data)
     loo = LeaveOneOut()
     rmse = []
-    lgb_model = lgb.LGBMRegressor(boosting_type='gbdt', num_leaves=50, max_depth=-1, learning_rate=0.1, n_estimators=200)
+    lgb_model = lgb.LGBMRegressor(num_leaves = 30, learning_rate= 0.3, n_estimators = 100, random_state=0, min_child_samples=4)
                                       
     
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
@@ -84,17 +84,17 @@ def lightGBM(data):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-        eval_set = [(X_test, y_test)]
+        # eval_set = [(X_test, y_test)]
 
         # Fit the LightGBM model to the training data
-        lgb_model.fit(X_train, y_train, eval_set=eval_set)
+        lgb_model.fit(X_train, y_train) #eval_set=eval_set
 
         # Make predictions on the test data
-        y_pred = lgb_model.predict(X_test)
+        y_pred = lgb_model.predict(X_test, raw_score = True, num_iteration = -1)
         # print(y_pred[0])
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
 
-        print("Fold {idx} finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
+        print("Fold", idx, "finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
 
     # Compute the accuracy metrics of the model using the predicted labels and true labels
     mrmse = np.mean(rmse)
@@ -148,6 +148,6 @@ if __name__ == '__main__':
     print("running...")
     # Aquire data
     data = openFile("selected_features.csv") # 18 patients, 10 x, 1 y 
-    otherRF(data)
+    # otherRF(data)
     RF(data) 
-    # lightGBM(data)
+    lightGBM(data)

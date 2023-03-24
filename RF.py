@@ -1,13 +1,11 @@
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import LeaveOneOut
-from matplotlib import pyplot as plt
 from sklearn.model_selection import cross_val_score
 import pandas as pd
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import mean_squared_error, r2_score, explained_variance_score
-import numpy as np
-import math
+from sklearn.metrics import mean_squared_error
+import lightgbm as lgb
+
 
 def openFile(filename):
     file = pd.read_csv(filename, header = 1)
@@ -22,55 +20,35 @@ def split(data):
     # print(y)
     return X, y
 
-def randomForest(data):
+def otherRF(data):
     X, y = split(data)
-    # print(X)
-    # print(y)
+
+    #define cross-validation method to use
     loo = LeaveOneOut()
-    y_pred = []
-    # model = RandomForestRegressor()
-    # scores = cross_val_score(model, X, y, scoring = 'neg_mean_squared_error', cv=loo)
+
+    #build multiple linear regression model
+    model = RandomForestRegressor(n_estimators=500, random_state=0)
+
+    #use LOOCV to evaluate model
+    scores = cross_val_score(model, X, y, scoring='neg_mean_squared_error',
+                            cv=loo, n_jobs=-1)
+
+    #view RMSE
+    print( ("-" * 12), "Random Forest (Method 1)", ("-" * 12) )
     # print(scores)
-    # print(np.sqrt(np.mean(np.absolute(scores))))
-    for train_idx, test_idx in loo.split(X):
-        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        model = RandomForestRegressor()
-        model.fit(X_train, y_train)
-        y_pred.append(model.predict(X_test)[0])
-
-    # for i, (train_index, test_index) in enumerate(loo.split(X)):
-    #     rf = RandomForestRegressor()
-
-    #     print("TRAIN:", train_index, "TEST:", test_index)
-    #     X_train, X_test = X[train_index], X[test_index]
-    #     y_train, y_test = y[train_index], y[test_index.tolist()]
-    #     print(X_train, X_test, y_train, y_test)
-
-    #     rf.fit(X_train, y_train)
-    #     pred.append(rf.predict(X_test))
-    #     print(pred)
-    #     # print(f"Fold {i}:")
-    #     # print(f"  Train: index={train_index}")
-    #     # print(f"  Test:  index={test_index}")
-    #     # print(type(train_index))
-
-    return None
+    print("RMSE: ", np.sqrt(np.mean(np.absolute(scores))))
 
 def RF(data):
-    # Split data into X and y
     X, y = split(data)
-    # Initialize the random forest regressor. Need to check if this goes in the for loop or not
-    rf = RandomForestRegressor(n_estimators=1000)
-
-    # Initialize the leave-one-out cross-validator
     loo = LeaveOneOut()
 
-    # Initialize arrays to store the predicted labels and true labels for each fold
-    y_pred, y_true = np.zeros_like(y)
+    rmse = []
+    # Initialize the random forest regressor
+    rf = RandomForestRegressor(n_estimators=200, random_state=0)
 
-    # Iterate over each loo
-    for train_idx, test_idx in loo.split(X):
+    for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
+        print(("-" * 12),"Training fold ",idx, (12 * "-"))
+        
         # Get the training and testing data for the fold
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
@@ -79,30 +57,97 @@ def RF(data):
         rf.fit(X_train, y_train)
         
         # Predict the labels for the test data
-        y_pred[test_idx] = rf.predict(X_test)
-        
-        # Store the true labels for the test data
-        y_true[test_idx] = y_test
+        y_pred = rf.predict(X_test)
 
-    # Compute the accuracy metrics of the model using the predicted labels and true labels
-    mse = mean_squared_error(y_true, y_pred)
-    r2 = r2_score(y_true, y_pred)
-    evs = explained_variance_score(y_true, y_pred)
+        rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+        print("Fold {idx} finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
+
+    mrmse = np.mean(rmse)
 
     #print results
-    print("Y: ", y)
-    print("Y_true: ", y_true)
-    print("Y_predict: ", y_pred)
+    print( ("-" * 12), "Random Forest", ("-" * 12) )
+    # print("Y_true: ", y_true)
+    # print("Y_predict: ", y_pred)
+    # print("RMSE:", rmse)
+    print("RMSE: ", mrmse)
 
-    print("MSE:", mse)
-    print("RMSE: ", math.sqrt(mse))
-    print("R-squared Score:", r2)
-    print("Explained Variance Score:", evs)
+def lightGBM(data): 
+    X, y = split(data)
+    loo = LeaveOneOut()
+    rmse = []
+    lgb_model = lgb.LGBMRegressor(boosting_type='gbdt', num_leaves=50, max_depth=-1, learning_rate=0.1, n_estimators=200)
+                                      
+    
+    for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
+        print( ("-" * 12), "Training Fold", idx, ("-" * 12) )
+        # Get the training and testing data for the fold
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
+        eval_set = [(X_test, y_test)]
+
+        # Fit the LightGBM model to the training data
+        lgb_model.fit(X_train, y_train, eval_set=eval_set)
+
+        # Make predictions on the test data
+        y_pred = lgb_model.predict(X_test)
+        # print(y_pred[0])
+        rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+
+        print("Fold {idx} finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
+
+    # Compute the accuracy metrics of the model using the predicted labels and true labels
+    mrmse = np.mean(rmse)
+
+    #print results
+    print( ("-" * 12), "LightGBM", ("-" * 12) )
+    # print("Y_true: ", y_true)
+    # print("Y_predict: ", y_pred)
+    print("RMSE: ", mrmse)
+
+def lightGBM_cross_validation(data):
+    X, y = split(data)
+    
+    # Define hyperparameter search space
+    params = {
+        'boosting_type': 'gbdt',
+        'objective': 'regression',
+        'metric': 'rmse',
+    }
+    
+    # Set up LightGBM dataset
+    lgb_data = lgb.Dataset(X, y)
+    
+    # Run hyperparameter search using LightGBM's built-in cross-validation tool
+    cv_results = lgb.cv(params=params,
+                        train_set=lgb_data,
+                        num_boost_round=200,
+                        nfold=5,
+                        stratified=False)
+    
+    # Get the best hyperparameters
+    best_params = cv_results['params']
+    
+    # Train final LightGBM model using the best hyperparameters
+    lgb_model = lgb.train(params=best_params,
+                          train_set=lgb_data,
+                          num_boost_round=cv_results['best_iteration'])
+    
+    # Make predictions on the test data
+    y_pred = lgb_model.predict(X)
+    
+    # Compute the accuracy metrics of the model using the predicted labels and true labels
+    mrmse = np.sqrt(mean_squared_error(y, y_pred))
+    
+    # Print results
+    print( ("-" * 12), "Light_GBM_CrossValidation", ("-" * 12) )
+    print("MRMSE: ", mrmse)
+
 
 if __name__ == '__main__':
     print("running...")
     # Aquire data
     data = openFile("selected_features.csv") # 18 patients, 10 x, 1 y 
-    # Run RF. Split our data into train/test using LOO
-    # randomForest(data)
-    RF(data)
+    otherRF(data)
+    RF(data) 
+    # lightGBM(data)

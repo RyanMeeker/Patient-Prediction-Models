@@ -5,10 +5,10 @@ from sklearn.model_selection import cross_val_score
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 import lightgbm as lgb
-
+import matplotlib.pyplot as plt
 
 def openFile(filename):
-    file = pd.read_csv(filename, header = 1)
+    file = pd.read_csv(filename)
     # print(file)
     return file
 
@@ -75,9 +75,10 @@ def lightGBM(data):
     X, y = split(data)
     loo = LeaveOneOut()
     rmse = []
-    lgb_model = lgb.LGBMRegressor(num_leaves = 30, learning_rate= 0.3, n_estimators = 100, random_state=0, min_child_samples=4)
-                                      
-    
+    lgb_model = lgb.LGBMRegressor(boosting_type='gbdt', num_leaves = 30, learning_rate= 0.025, n_estimators = 125, random_state=0, min_child_samples=5)
+    toPlot = []     
+    test = []     
+
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
         print( ("-" * 12), "Training Fold", idx, ("-" * 12) )
         # Get the training and testing data for the fold
@@ -85,20 +86,35 @@ def lightGBM(data):
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
         # eval_set = [(X_test, y_test)]
-
         # Fit the LightGBM model to the training data
         lgb_model.fit(X_train, y_train) #eval_set=eval_set
 
         # Make predictions on the test data
         y_pred = lgb_model.predict(X_test, raw_score = True, num_iteration = -1)
         # print(y_pred[0])
+        toPlot.append(y_pred)
+        test.append(y_test)
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+        # for j in range(len(y_test)):
+        #     toPlot[j] = ( toPlot[j] + (y_test - y_pred) )
+        # # print(toPlot)
 
         print("Fold", idx, "finished with rmse: ", np.sqrt( mean_squared_error( y_test, y_pred )))
+    
+    # print("y= ", y)
+    y_plot = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17])
+    print(toPlot)
+    for i in range(len(toPlot)):
+        toPlot[i] = (test[i] - toPlot[i])
+
+    # print("x = ", toPlot)
+    plt.scatter(y_plot, toPlot)
+    plt.show()
 
     # Compute the accuracy metrics of the model using the predicted labels and true labels
     mrmse = np.mean(rmse)
-
+    # fig = plt.figure(figsize=(14,8))
+    
     #print results
     print( ("-" * 12), "LightGBM", ("-" * 12) )
     # print("Y_true: ", y_true)
@@ -143,11 +159,23 @@ def lightGBM_cross_validation(data):
     print( ("-" * 12), "Light_GBM_CrossValidation", ("-" * 12) )
     print("MRMSE: ", mrmse)
 
+def plot(patient, y_pred):
+
+
+    # Create scatterplots for Feature1 to Feature3
+    # for i, col in enumerate(['SUVvar_dyn_rel_wb_PL_min', 'SUVmax_dyn_abs_spine_allL_max', 'SUVmax_dyn_abs_wb_allL_var']):
+    #     ax = axes[i][0]
+    #     ax.scatter(data[col], data['pfs'])
+    #     ax.set_xlabel(col)
+    #     ax.set_ylabel('pfs')
+
+    plt.show()
 
 if __name__ == '__main__':
     print("running...")
     # Aquire data
     data = openFile("selected_features.csv") # 18 patients, 10 x, 1 y 
     # otherRF(data)
-    RF(data) 
+    # RF(data) 
     lightGBM(data)
+    # plot(data)

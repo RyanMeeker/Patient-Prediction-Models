@@ -1,14 +1,15 @@
-import numpy as np
+ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import LeaveOneOut
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 import lightgbm as lgb
+import optuna
 
 
 def openFile(filename):
-    file = pd.read_csv(filename, header = 1)
+    file = pd.read_csv(filename)
     # print(file)
     return file
 
@@ -65,17 +66,17 @@ def RF(data):
     mrmse = np.mean(rmse)
 
     #print results
-    print( ("-" * 12), "Random Forest", ("-" * 12) )
+    print( ("-" * 16), "Random Forest", ("-" * 16) )
     # print("Y_true: ", y_true)
     # print("Y_predict: ", y_pred)
     # print("RMSE:", rmse)
     print("RMSE: ", mrmse)
 
-def lightGBM(data): 
+def lightGBMLOO(data, params): 
     X, y = split(data)
     loo = LeaveOneOut()
     rmse = []
-    lgb_model = lgb.LGBMRegressor(num_leaves = 30, learning_rate= 0.3, n_estimators = 100, random_state=0, min_child_samples=4)
+    lgb_model = lgb.LGBMRegressor(**params)
                                       
     
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
@@ -105,43 +106,97 @@ def lightGBM(data):
     # print("Y_predict: ", y_pred)
     print("RMSE: ", mrmse)
 
-def lightGBM_cross_validation(data):
-    X, y = split(data)
-    
-    # Define hyperparameter search space
+
+def objectiveCV(trial):
+    # Set hyperparameters to be tuned
     params = {
-        'boosting_type': 'gbdt',
         'objective': 'regression',
         'metric': 'rmse',
+        'boosting_type': 'gbdt',
+        'n_estimators': trial.suggest_int('n_estimators', 50, 500),
+        'num_leaves': trial.suggest_int('num_leaves', 2, 256),
+        'learning_rate': trial.suggest_float('learning_rate', 0.005, 2),
+        'max_depth': trial.suggest_int('max_depth', -1, 30),
+        'min_child_samples': trial.suggest_int('min_child_samples', 2, 10),
     }
     
-    # Set up LightGBM dataset
-    lgb_data = lgb.Dataset(X, y)
+    # Set up LightGBM model with hyperparameters
+    model = lgb.LGBMRegressor(**params)
     
-    # Run hyperparameter search using LightGBM's built-in cross-validation tool
-    cv_results = lgb.cv(params=params,
-                        train_set=lgb_data,
-                        num_boost_round=200,
-                        nfold=5,
-                        stratified=False)
+    # Split data into features and target variables
+    X, y = split(data)
     
-    # Get the best hyperparameters
-    best_params = cv_results['params']
+    # Perform cross-validation and return mean RMSE
+    score = np.sqrt(-cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error'))
+    return score.mean()
+
+def LightGBMCrossValidation(data):
+    # Set up Optuna study and run optimization
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objectiveCV, n_trials=100)
     
-    # Train final LightGBM model using the best hyperparameters
-    lgb_model = lgb.train(params=best_params,
-                          train_set=lgb_data,
-                          num_boost_round=cv_results['best_iteration'])
+    # Print best hyperparameters and score
+    print("Best parameters:", study.best_params)
+    print("Best score:", study.best_value)
     
-    # Make predictions on the test data
-    y_pred = lgb_model.predict(X)
+    # Set up LightGBM model with best hyperparameters
+    best_params = study.best_params
+    best_model = lgb.LGBMRegressor(**best_params)
     
-    # Compute the accuracy metrics of the model using the predicted labels and true labels
-    mrmse = np.sqrt(mean_squared_error(y, y_pred))
+    # Split data into features and target variables
+    X, y = split(data)
+
+    best_model.fit(X, y)
+
+    # Compute the mean squared error of the final model
+    y_pred = best_model.predict(X)
+    mse = np.sqrt(mean_squared_error(y, y_pred))
+    print("RMSE: ", mse)
+    # Perform cross-validation and print scores
+    # scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+    # print("Cross-validation scores:", scores)
+    # print("Mean score:", scores.mean())
+
+def objectiveLOO(trial):
+    # Set hyperparameters to be tuned
+    params = {
+        'objective': 'regression',
+        'metric': 'rmse',
+        'boosting_type': 'gbdt',
+        'n_estimators': trial.suggest_int('n_estimators', 50, 500),
+        'num_leaves': trial.suggest_int('num_leaves', 2, 256),
+        'learning_rate': trial.suggest_float('learning_rate', 0.005, 2),
+        'max_depth': trial.suggest_int('max_depth', -1, 30),
+        'min_child_samples': trial.suggest_int('min_child_samples', 2, 10),
+    } 
+
+    data = pd.read_csv("selected_features.csv")
+    X, y = split(data)
+    loo = LeaveOneOut()
+    rmse = []
+    lgb_model = lgb.LGBMRegressor(**params)
+                                      
+    for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        lgb_model.fit(X_train, y_train) #eval_set=eval_set
+        y_pred = lgb_model.predict(X_test, raw_score = True, num_iteration = -1)
+        rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+    mrmse = np.mean(rmse)
+    return mrmse
+
+def lightGBMLOOOptuna(data):
+    # Set up Optuna study and run optimization
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objectiveLOO, n_trials=100)
     
-    # Print results
-    print( ("-" * 12), "Light_GBM_CrossValidation", ("-" * 12) )
-    print("MRMSE: ", mrmse)
+    # Print best hyperparameters and score
+    print("Best parameters:", study.best_params)
+    print("Best score:", study.best_value)
+    
+    # Set up LightGBM model with best hyperparameters
+    best_params = study.best_params
+    lightGBMLOO(data, best_params)
 
 
 if __name__ == '__main__':
@@ -149,5 +204,7 @@ if __name__ == '__main__':
     # Aquire data
     data = openFile("selected_features.csv") # 18 patients, 10 x, 1 y 
     # otherRF(data)
-    RF(data) 
-    lightGBM(data)
+    # RF(data) 
+    # lightGBMLOO(data)
+    # lightGBMLOOOptuna(data)
+    LightGBMCrossValidation(data)

@@ -17,11 +17,14 @@ def split(data):
 
 def lightGBMLOO(data, params): 
     X, y = split(data)
+    actual = y
     loo = LeaveOneOut()
-    rmse = []
+    rmse, feature_importances = [], []
+    predicted = np.zeros_like(y)
+
     lgb_model = lgb.LGBMRegressor(**params)
-                                      
-    
+
+    print("Training Fold: ")
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
         print(idx, end=" ")
         # Get the training and testing data for the fold
@@ -34,11 +37,19 @@ def lightGBMLOO(data, params):
 
         # Make predictions on the test data
         y_pred = lgb_model.predict(X_test, raw_score = True, num_iteration = -1)
+
+
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+        
+        feature_importances.append(lgb_model.feature_importances_)
+        predicted[idx] = y_pred
 
     # Compute the accuracy metrics of the model using the predicted labels and true labels
     mrmse = np.mean(rmse)
-    
+
+    for idx, x in enumerate(predicted):
+        predicted[idx] = np.mean(x)
+
     #print results
     print()
     print( ("-" * 12), "LightGBM", ("-" * 12) )
@@ -46,6 +57,8 @@ def lightGBMLOO(data, params):
 
     # Plots
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    
+    mean_feature_importances = np.mean(feature_importances, axis=0)
 
     # Feature Importances
     axs[0].bar(X.columns, mean_feature_importances)
@@ -70,18 +83,18 @@ def lightGBMLOO(data, params):
     # plt.tight_layout()
     plt.show()
 
-    # # # Actual vs Predicted
-    # fig = plt.figure(figsize=(10, 5))
-    # bar_width = 0.4
-    # x = np.arange(len(actual))
-    # plt.bar(x - 0.2, actual, width=bar_width, label='Actual', color='deepskyblue')
-    # plt.bar(x + 0.2, predicted, width=bar_width, label='Predicted', color='steelblue')
-    # plt.legend()
-    # plt.xlabel("Patient")
-    # plt.ylabel("Value")
-    # plt.title("Actual vs Predicted")
+    # # Actual vs Predicted
+    fig = plt.figure(figsize=(10, 5))
+    bar_width = 0.4
+    x = np.arange(len(actual))
+    plt.bar(x - 0.2, actual, width=bar_width, label='Actual', color='deepskyblue')
+    plt.bar(x + 0.2, predicted, width=bar_width, label='Predicted', color='steelblue')
+    plt.legend()
+    plt.xlabel("Patient")
+    plt.ylabel("Value")
+    plt.title("Actual vs Predicted")
     
-    # plt.show()
+    plt.show()
 
 
 

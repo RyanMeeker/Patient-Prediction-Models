@@ -56,7 +56,7 @@ def lightGBMLOO(data, params):
     print("RMSE: ", mrmse)
 
     # Plots
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
     
     mean_feature_importances = np.mean(feature_importances, axis=0)
 
@@ -84,7 +84,7 @@ def lightGBMLOO(data, params):
     plt.show()
 
     # # Actual vs Predicted
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(15, 5))
     bar_width = 0.4
     x = np.arange(len(actual))
     plt.bar(x - 0.2, actual, width=bar_width, label='Actual', color='deepskyblue')

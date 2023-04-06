@@ -17,7 +17,7 @@ def MLR(data):
     loo = LeaveOneOut()
     rmse = []
     predicted = np.zeros_like(y)
-    array_FI = []
+    # array_FI = []
     reg = LinearRegression()
                                       
     
@@ -32,10 +32,10 @@ def MLR(data):
         y_pred = reg.predict(X_test)
 
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
-        coefficients = reg.coef_
-        feature_importances = pd.DataFrame({'feature': X.columns, 'importance': coefficients})
-        feature_importances = feature_importances.reindex(feature_importances['importance'].abs().sort_values(ascending=False).index)
-        array_FI.append(feature_importances)
+        # coefficients = reg.coef_
+        # feature_importances = pd.DataFrame({'feature': X.columns, 'importance': coefficients})
+        # feature_importances = feature_importances.reindex(feature_importances['importance'].abs().sort_values(ascending=False).index)
+        # array_FI.append(feature_importances)
         predicted[idx] = y_pred
 
     # Compute the accuracy metrics of the model using the predicted labels and true labels
@@ -45,18 +45,18 @@ def MLR(data):
     print( ("-" * 12), "LightGBM", ("-" * 12) )
     print("RMSE: ", mrmse)
     
-    mean_feature_importances = np.mean(feature_importances, axis=0)
+    # mean_feature_importances = np.mean(feature_importances, axis=0)
 
     # Plots
     fig, axs = plt.subplots(1, 2, figsize=(15, 5))
 
     # Feature Importances
-    axs[0].bar(X.columns, mean_feature_importances)
-    axs[0].set_xticks(range(len(X.columns)))
-    axs[0].set_xticklabels(X.columns, rotation=90, ha='right')
+    # axs[0].bar(X.columns, mean_feature_importances)
+    # axs[0].set_xticks(range(len(X.columns)))
+    # axs[0].set_xticklabels(X.columns, rotation=90, ha='right')
     axs[0].set_ylabel("Importance")
     axs[0].set_xlabel("Feature")
-    axs[0].set_title("Feature Importances")
+    axs[0].set_title("Feature Importances(STILL WORKING ON THIS)")
 
     # Residual Plot
     residuals = [a - p for a, p in zip(actual, predicted)]

@@ -17,7 +17,7 @@ def RF(data):
     loo = LeaveOneOut()
     feature_importances, rmse = [], []
     predicted = np.zeros_like(y)
-    # Initialize the random forest regressor
+
     rf = RandomForestRegressor(n_estimators=200, min_samples_split=4, random_state=0)
 
     print("Training Fold: ")
@@ -35,14 +35,10 @@ def RF(data):
         # Predict the labels for the test data
         y_pred = rf.predict(X_test)
 
-        # Calculate Mean Squared Error
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+        # print("Feature importance: ", rf.feature_importances_)
         feature_importances.append(rf.feature_importances_)
-        
-        predicted[idx] += y_pred
-    
-    for idx, x in enumerate(predicted):
-        predicted[idx] = np.mean(x)
+        predicted[idx] = y_pred
 
     mrmse = np.mean(rmse)
 
@@ -52,8 +48,11 @@ def RF(data):
     print("Root Mean Squared Error: ", mrmse)
 
     mean_feature_importances = np.mean(feature_importances, axis=0)
+    # print("Print Feature Importances", feature_importances)
+    # print("Print Mean Feature Importances", mean_feature_importances)
+
     # Plots
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
 
     # Feature Importances
     axs[0].bar(X.columns, mean_feature_importances)
@@ -79,7 +78,7 @@ def RF(data):
     plt.show()
 
     # # Actual vs Predicted
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(15, 5))
     bar_width = 0.4
     x = np.arange(len(actual))
     plt.bar(x - 0.2, actual, width=bar_width, label='Actual', color='deepskyblue')

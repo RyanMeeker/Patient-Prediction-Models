@@ -1,0 +1,18 @@
+scores are RMSE
+
+LightGBM LOO---------------------
+dyn: 13.092
+
+Best Parameters:  {'n_estimators': 474, 'num_leaves': 168, 'learning_rate': 0.24021032514165697, 'max_depth': 19, 'min_child_samples': 2}
+
+static: 5.348
+
+Best Parameters:  {'n_estimators': 202, 'num_leaves': 2, 'learning_rate': 0.09976820826514177, 'max_depth': 12, 'min_child_samples': 2}
+
+Multi_Lin_Reg-----------------
+dyn features: 15.1618
+static featurs: 11.40
+
+Random Forest----------
+dyn features: 12.26
+static: 14.24

@@ -73,7 +73,6 @@ def MLR(data):
 
     # plt.tight_layout()
     plt.show()
-
     # # Actual vs Predicted
     fig = plt.figure(figsize=(15, 5))
     bar_width = 0.4
@@ -87,6 +86,10 @@ def MLR(data):
     
     plt.show()
 
+    rounded_actual = [round(num, 4) for num in actual]
+    rounded_predicted = [round(num, 4) for num in predicted]
+    print("Actual: ", *rounded_actual, sep=', ')
+    print("Predct: ", *rounded_predicted, sep=', ')
 
 
 

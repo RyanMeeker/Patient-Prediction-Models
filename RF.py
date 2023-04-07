@@ -78,6 +78,8 @@ def RF(data):
     # plt.tight_layout()
     plt.show()
 
+    print("Feature Importance Values: ", *mean_feature_importances, sep=', ')
+
     # # Actual vs Predicted
     fig = plt.figure(figsize=(15, 5))
     bar_width = 0.4
@@ -90,6 +92,11 @@ def RF(data):
     plt.title("Actual vs Predicted")
     
     plt.show()
+
+    rounded_actual = [round(num, 4) for num in actual]
+    rounded_predicted = [round(num, 4) for num in predicted]
+    print("Actual: ", *rounded_actual, sep=', ')
+    print("Predct: ", *rounded_predicted, sep=', ')
 
 
 

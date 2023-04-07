@@ -84,8 +84,8 @@ def lightGBMLOO(data, params):
     # plt.tight_layout()
     plt.show()
 
-    rounded_actual = [round(num, 1) for num in actual]
-    rounded_predicted = [round(num, 1) for num in predicted]
+    print("Feature Importance Values: ", *mean_feature_importances, sep=', ')
+
 
     # # Actual vs Predicted
     fig = plt.figure(figsize=(15, 5))
@@ -100,6 +100,8 @@ def lightGBMLOO(data, params):
     
     plt.show()
     
+    rounded_actual = [round(num, 4) for num in actual]
+    rounded_predicted = [round(num, 4) for num in predicted]
     print("Actual: ", *rounded_actual, sep=', ')
     print("Predct: ", *rounded_predicted, sep=', ')
 

@@ -68,9 +68,10 @@ def RF(data):
         residuals[idx] = x / len(residuals) #np.std(residuals)
 
     # = residuals / len(residuals)    #np.std(residuals)
-    axs[1].scatter(actual, residuals)
-    axs[1].set_xlabel("Actual Values")
-    axs[1].set_ylabel("Standardized Residuals")
+    patient = np.arange(len(y))
+    axs[1].scatter(patient, residuals)
+    axs[1].set_xlabel("Patient")
+    axs[1].set_ylabel("Actual-Pred / n")
     axs[1].set_title("Residual Plot")
     axs[1].axhline(y=0, color='blue', linestyle='-')
 

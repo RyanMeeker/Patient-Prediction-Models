@@ -48,15 +48,15 @@ def MLR(data):
     # mean_feature_importances = np.mean(feature_importances, axis=0)
 
     # Plots
-    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+    fig, axs = plt.subplots(1, 1, figsize=(15, 5))
 
     # Feature Importances
     # axs[0].bar(X.columns, mean_feature_importances)
     # axs[0].set_xticks(range(len(X.columns)))
     # axs[0].set_xticklabels(X.columns, rotation=90, ha='right')
-    axs[0].set_ylabel("Importance")
-    axs[0].set_xlabel("Feature")
-    axs[0].set_title("Feature Importances(STILL WORKING ON THIS)")
+    # axs[0].set_ylabel("Importance")
+    # axs[0].set_xlabel("Feature")
+    # axs[0].set_title("Feature Importances(STILL WORKING ON THIS)")
 
     # Residual Plot
     residuals = [a - p for a, p in zip(actual, predicted)]
@@ -64,11 +64,12 @@ def MLR(data):
         residuals[idx] = x / len(residuals) #np.std(residuals)
 
     # = residuals / len(residuals)    #np.std(residuals)
-    axs[1].scatter(actual, residuals)
-    axs[1].set_xlabel("Actual Values")
-    axs[1].set_ylabel("Standardized Residuals")
-    axs[1].set_title("Residual Plot")
-    axs[1].axhline(y=0, color='blue', linestyle='-')
+    patient = np.arange(len(y))
+    plt.scatter(patient, residuals)
+    plt.xlabel("Patient")
+    plt.ylabel("Actual-Pred / n")
+    plt.title("Residual Plot")
+    plt.axhline(y=0, color='blue', linestyle='-')
 
     # plt.tight_layout()
     plt.show()

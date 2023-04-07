@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import LeaveOneOut
 import pandas as pd
 from sklearn.metrics import mean_squared_error
-import lightgbm as lgb
+import xgboost as xgb
 import optuna
 import matplotlib.pyplot as plt
 
@@ -22,7 +22,7 @@ def lightGBMLOO(data, params):
     rmse, feature_importances = [], []
     predicted = np.zeros_like(y)
 
-    lgb_model = lgb.LGBMRegressor(**params)
+    xgb_model = xgb.XGBRegressor(**params)
 
     print("Training Fold: ")
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
@@ -33,15 +33,14 @@ def lightGBMLOO(data, params):
 
         # eval_set = [(X_test, y_test)]
         # Fit the LightGBM model to the training data
-        lgb_model.fit(X_train, y_train) #eval_set=eval_set
+        xgb_model.fit(X_train, y_train) #eval_set=eval_set
 
         # Make predictions on the test data
-        y_pred = lgb_model.predict(X_test)
-
+        y_pred = xgb_model.predict(X_test)
 
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
         
-        feature_importances.append(lgb_model.feature_importances_)
+        feature_importances.append(xgb_model.feature_importances_)
         predicted[idx] = y_pred
 
     # Compute the accuracy metrics of the model using the predicted labels and true labels
@@ -52,7 +51,7 @@ def lightGBMLOO(data, params):
 
     #print results
     print()
-    print( ("-" * 12), "LightGBM", ("-" * 12) )
+    print( ("-" * 12), "XGBoost", ("-" * 12) )
     print("RMSE: ", mrmse)
 
     # Plots
@@ -109,27 +108,30 @@ def lightGBMLOO(data, params):
 def objectiveLOO(trial):
     # Set hyperparameters to be tuned
     params = {
-        'objective': 'regression',
-        'metric': 'rmse',
-        'boosting_type': 'gbdt',
+        'max_depth': trial.suggest_int('max_depth', 1, 9),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 1.0),
         'n_estimators': trial.suggest_int('n_estimators', 50, 500),
-        'num_leaves': trial.suggest_int('num_leaves', 2, 256),
-        'learning_rate': trial.suggest_float('learning_rate', 0.005, 2),
-        'max_depth': trial.suggest_int('max_depth', -1, 30),
-        'min_child_samples': trial.suggest_int('min_child_samples', 2, 6),
+        'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
+        'gamma': trial.suggest_float('gamma', 1e-8, 1.0),
+        'subsample': trial.suggest_float('subsample', 0.01, 1.0),
+        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.01, 1.0),
+        'reg_alpha': trial.suggest_float('reg_alpha', 1e-8, 1.0),
+        'reg_lambda': trial.suggest_float('reg_lambda', 1e-8, 1.0),
+        'eval_metric': 'mlogloss',
+        'use_label_encoder': False
     } 
 
     data = pd.read_csv("selected_features.csv")
     X, y = split(data)
     loo = LeaveOneOut()
     rmse = []
-    lgb_model = lgb.LGBMRegressor(**params)
+    xgb_model = xgb.XGBRegressor(**params)
                                       
     for idx, (train_idx, test_idx) in enumerate(loo.split(X)):        
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        lgb_model.fit(X_train, y_train) #eval_set=eval_set
-        y_pred = lgb_model.predict(X_test)
+        xgb_model.fit(X_train, y_train) #eval_set=eval_set
+        y_pred = xgb_model.predict(X_test)
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
 
     mrmse = np.mean(rmse)

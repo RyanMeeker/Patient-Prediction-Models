@@ -15,7 +15,7 @@ def RF(data):
     X, y = split(data)
     actual = y
     loo = LeaveOneOut()
-    feature_importances, rmse = [], []
+    feature_importances = []
     predicted = np.zeros_like(y)
 
     rf = RandomForestRegressor(n_estimators=200, min_samples_split=4, random_state=0)
@@ -34,22 +34,40 @@ def RF(data):
         
         # Predict the labels for the test data
         y_pred = rf.predict(X_test)
-
-        rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
+        # rmse.append(root_mean_squared_error)
         # print("Feature importance: ", rf.feature_importances_)
         feature_importances.append(rf.feature_importances_)
         predicted[idx] = y_pred
 
-    mrmse = np.mean(rmse)
-
+    diff = actual - predicted
+    squared_diff = diff ** 2
+    mean_squared_error = squared_diff.mean()
+    rmse = mean_squared_error ** 0.5
+    # mrmse = np.mean(rmse)
+    print()
+    print("All rmse: ", rmse)
     #print results
     print()
     print( ("-" * 16), "Random Forest", ("-" * 16) )
-    print("Root Mean Squared Error: ", mrmse)
+    print("Root Mean Squared Error: ", rmse)
 
     mean_feature_importances = np.mean(feature_importances, axis=0)
+    
+    print("Feature Importance Values: ", *mean_feature_importances, sep=', ')
+    
+    rounded_actual = [round(num, 4) for num in actual]
+    rounded_predicted = [round(num, 4) for num in predicted]
+    print("Actual: ", *rounded_actual, sep=', ')
+    print("Predct: ", *rounded_predicted, sep=', ')
+
     # print("Print Feature Importances", feature_importances)
     # print("Print Mean Feature Importances", mean_feature_importances)
+
+    return actual, predicted, mean_feature_importances, X
+
+def plots(data):
+
+    actual, predicted, mean_feature_importances, X = RF(data)
 
     # Plots
     fig, axs = plt.subplots(1, 2, figsize=(15, 5))
@@ -78,8 +96,6 @@ def RF(data):
     # plt.tight_layout()
     plt.show()
 
-    print("Feature Importance Values: ", *mean_feature_importances, sep=', ')
-
     # # Actual vs Predicted
     fig = plt.figure(figsize=(15, 5))
     bar_width = 0.4
@@ -92,11 +108,4 @@ def RF(data):
     plt.title("Actual vs Predicted")
     
     plt.show()
-
-    rounded_actual = [round(num, 4) for num in actual]
-    rounded_predicted = [round(num, 4) for num in predicted]
-    print("Actual: ", *rounded_actual, sep=', ')
-    print("Predct: ", *rounded_predicted, sep=', ')
-
-
 

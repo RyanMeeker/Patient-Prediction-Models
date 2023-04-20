@@ -14,6 +14,15 @@ def split(data):
     # print(X)
     # print(y)
     return X, y
+def ParamDyn():
+    # Dynamic
+    param = {'n_estimators': 436, 'num_leaves': 25, 'learning_rate': 0.2653837205815723, 'max_depth': 2, 'min_child_samples': 2}
+    return param
+
+def ParamStatic():
+    # Static
+    param = {'n_estimators': 436, 'num_leaves': 25, 'learning_rate': 0.2653837205815723, 'max_depth': 2, 'min_child_samples': 2}
+    return param
 
 def lightGBMLOO(data, params): 
     X, y = split(data)
@@ -38,7 +47,6 @@ def lightGBMLOO(data, params):
         # Make predictions on the test data
         y_pred = lgb_model.predict(X_test)
 
-
         rmse.append( np.sqrt( mean_squared_error( y_test, y_pred )))
         
         feature_importances.append(lgb_model.feature_importances_)
@@ -52,13 +60,30 @@ def lightGBMLOO(data, params):
 
     #print results
     print()
+
     print( ("-" * 12), "LightGBM", ("-" * 12) )
     print("RMSE: ", mrmse)
 
+    mean_feature_importances = np.mean(feature_importances, axis=0)
+
+    print("Feature Importance Values: ", *mean_feature_importances, sep=', ')
+    
+    rounded_actual = [round(num, 4) for num in actual]
+    rounded_predicted = [round(num, 4) for num in predicted]
+    
+    print("Actual: ", *rounded_actual, sep=', ')
+    print("Predct: ", *rounded_predicted, sep=', ')
+
+    return mean_feature_importances, X, actual, predicted
+
+
+def plots(data, params):
+
+    mean_feature_importances, X, actual, predicted = lightGBMLOO(data, params)
+    
     # Plots
     fig, axs = plt.subplots(1, 2, figsize=(15, 5))
     
-    mean_feature_importances = np.mean(feature_importances, axis=0)
 
     # Feature Importances
     axs[0].bar(X.columns, mean_feature_importances)
@@ -84,8 +109,6 @@ def lightGBMLOO(data, params):
     # plt.tight_layout()
     plt.show()
 
-    print("Feature Importance Values: ", *mean_feature_importances, sep=', ')
-
 
     # # Actual vs Predicted
     fig = plt.figure(figsize=(15, 5))
@@ -99,13 +122,6 @@ def lightGBMLOO(data, params):
     plt.title("Actual vs Predicted")
     
     plt.show()
-    
-    rounded_actual = [round(num, 4) for num in actual]
-    rounded_predicted = [round(num, 4) for num in predicted]
-    print("Actual: ", *rounded_actual, sep=', ')
-    print("Predct: ", *rounded_predicted, sep=', ')
-
-
 
 
 def objectiveLOO(trial):
@@ -145,5 +161,5 @@ def lightGBMLOOOptuna(data, n):
 
     print("Best Parameters: ", study.best_params)
     print("Best Scorre:", study.best_value)
-
-    lightGBMLOO(data, study.best_params)
+    return study.best_params
+    # lightGBMLOO(data, study.best_params)
